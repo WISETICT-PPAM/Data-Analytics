@@ -5,7 +5,6 @@ import re
 import sys
 import pandas as pd
 import urllib.request
-# from .review_crawler import review_crawler
 
 
 # db connection
@@ -29,9 +28,13 @@ conn.commit()
 post_table = pd.read_sql("select * from post_table", conn)
 post_table.info()
 
+
 #%%
 # 리뷰 크롤러 함수 정의
 def review_crawling(post_url, post_code):
+    # 리뷰가 없을 경우를 위한 flag
+    flag = True
+    
     # 상세페이지 접속
     driver = webdriver.Chrome(r"C:\Users\이다혜\Desktop\crawling_DB\chromedriver.exe")
     driver.get(post_url)
@@ -56,98 +59,107 @@ def review_crawling(post_url, post_code):
             pass
 
     # 베스트 리뷰 버튼 누르기
-    best_review_button = driver.find_element_by_css_selector(
-        'button.sdp-review__article__order__sort__best-btn.js_reviewArticleHelpfulListBtn.js_reviewArticleSortBtn')
-    best_review_button.click()
-    time.sleep(5)
-
-    # 베스트 리뷰 50개 크롤링
-    review_code_list = []
-    review_date_list = []
-    review_list = []
-    cnt = 1
-    for i in range(1, 11):
-        container = driver.find_elements_by_css_selector("section.js_reviewArticleListContainer article")
-        for con in container:
-            # 작성 날짜
-            date = con.find_element_by_css_selector(
-                'div.sdp-review__article__list__info__product-info__reg-date').text.replace('.', '')
-            # 리뷰 내용
-            try:
-                review = con.find_element_by_css_selector(
-                    'div.sdp-review__article__list__review.js_reviewArticleContentContainer').text.replace('\n', ' ')
-                review = re.sub('[-=+,#/\?:^$.@*\"※~&%ㆍ!』\\‘|\(\)\[\]\<\>`\'…》]', '', review)
-                
-                print(date + ',' + review + ',' + str(cnt))
-                review_code = post_code + '-' + str(cnt)
-                review_code_list.append(review_code)
-                review_date_list.append(date)
-                review_list.append(review)
-                
-                cnt += 1
-            except:
-                pass
-        try:
-            page_button = driver.find_element_by_css_selector(
-                'div.sdp-review__article__page.js_reviewArticlePagingContainer > button:nth-child(' + str(i + 2) + ')')
-            page_button.click()
-            time.sleep(3)
-        except:
-            break
-
-    
-    # 최신순 보기 버튼 누르기
-    new_review_button = driver.find_element_by_css_selector(
-        'button.sdp-review__article__order__sort__newest-btn.js_reviewArticleNewListBtn.js_reviewArticleSortBtn')
-    new_review_button.click()
-    time.sleep(5)
-    
-    cnt_new = 1
-    for i in range(1, 100):
-        # 리뷰 컨테이너 선택
-        container = driver.find_elements_by_css_selector("section.js_reviewArticleListContainer article")
-        for con in container:
-            try:
-                if cnt_new == 101:
-                    print('100개 수집 완료')
-                    break
+    try:
+        best_review_button = driver.find_element_by_css_selector(
+            'button.sdp-review__article__order__sort__best-btn.js_reviewArticleHelpfulListBtn.js_reviewArticleSortBtn')
+        best_review_button.click()
+        time.sleep(5)
+    except:
+        flag = False
+        review_code_list = []
+        review_date_list = []
+        review_list = []
+        
+    # 리뷰가 있을 경우    
+    if flag is True:
+        # 베스트 리뷰 50개 크롤링
+        review_code_list = []
+        review_date_list = []
+        review_list = []
+        cnt = 1
+        for i in range(1, 11):
+            container = driver.find_elements_by_css_selector("section.js_reviewArticleListContainer article")
+            for con in container:
                 # 작성 날짜
                 date = con.find_element_by_css_selector(
                     'div.sdp-review__article__list__info__product-info__reg-date').text.replace('.', '')
                 # 리뷰 내용
-                review = con.find_element_by_css_selector(
-                    'div.sdp-review__article__list__review.js_reviewArticleContentContainer').text.replace('\n', ' ')
-                review = re.sub('[-=+,#/\?:^$.@*\"※~&%ㆍ!』\\‘|\(\)\[\]\<\>`\'…》]', '', review)
-                print(date + ',' + review + ',' + str(cnt_new))
-                
-                
-                review_code = post_code + '-' + str(cnt)
-                review_code_list.append(review_code)
-                review_date_list.append(date)
-                review_list.append(review)
-                cnt_new += 1
-                cnt += 1
-                
+                try:
+                    review = con.find_element_by_css_selector(
+                        'div.sdp-review__article__list__review.js_reviewArticleContentContainer').text.replace('\n', ' ')
+                    review = re.sub('[-=+,#/\?:^$.@*\"※~&%ㆍ!』\\‘|\(\)\[\]\<\>`\'…》]', '', review)
+                    
+                    # print(date + ',' + review + ',' + str(cnt))
+                    review_code = post_code + '-' + str(cnt)
+                    review_code_list.append(review_code)
+                    review_date_list.append(date)
+                    review_list.append(review)
+                    
+                    cnt += 1
+                except:
+                    pass
+            try:
+                page_button = driver.find_element_by_css_selector(
+                    'div.sdp-review__article__page.js_reviewArticlePagingContainer > button:nth-child(' + str(i + 2) + ')')
+                page_button.click()
+                time.sleep(3)
             except:
-                pass
-            
-        if cnt_new == 101:
-            print('100개 수집 완료, 종료')
-            break
-        
-        # 다음 페이지 버튼 있는지 확인
-        try:
-            page_button = driver.find_element_by_css_selector(
-                'div.sdp-review__article__page.js_reviewArticlePagingContainer > button:nth-child(' + str(i % 11 + 2) + ')')
-            page_button.click()
-            time.sleep(3)
-        # 없어서 에러 나면 최신순 리뷰 수집 종료
-        except:
-            print('100개 미만 수집완료')
-            break
+                break
     
+        
+        # 최신순 보기 버튼 누르기
+        new_review_button = driver.find_element_by_css_selector(
+            'button.sdp-review__article__order__sort__newest-btn.js_reviewArticleNewListBtn.js_reviewArticleSortBtn')
+        new_review_button.click()
+        time.sleep(5)
+        
+        cnt_new = 1
+        for i in range(1, 100):
+            # 리뷰 컨테이너 선택
+            container = driver.find_elements_by_css_selector("section.js_reviewArticleListContainer article")
+            for con in container:
+                try:
+                    if cnt_new == 101:
+                        print('100개 수집 완료')
+                        break
+                    # 작성 날짜
+                    date = con.find_element_by_css_selector(
+                        'div.sdp-review__article__list__info__product-info__reg-date').text.replace('.', '')
+                    # 리뷰 내용
+                    review = con.find_element_by_css_selector(
+                        'div.sdp-review__article__list__review.js_reviewArticleContentContainer').text.replace('\n', ' ')
+                    review = re.sub('[-=+,#/\?:^$.@*\"※~&%ㆍ!』\\‘|\(\)\[\]\<\>`\'…》]', '', review)
+                    # print(date + ',' + review + ',' + str(cnt_new))
+                    
+                    
+                    review_code = post_code + '-' + str(cnt)
+                    review_code_list.append(review_code)
+                    review_date_list.append(date)
+                    review_list.append(review)
+                    cnt_new += 1
+                    cnt += 1
+                    
+                except:
+                    pass
+                
+            if cnt_new == 101:
+                print('100개 수집 완료, 종료')
+                break
+            
+            # 다음 페이지 버튼 있는지 확인
+            try:
+                page_button = driver.find_element_by_css_selector(
+                    'div.sdp-review__article__page.js_reviewArticlePagingContainer > button:nth-child(' + str(i % 11 + 2) + ')')
+                page_button.click()
+                time.sleep(3)
+            # 없어서 에러 나면 최신순 리뷰 수집 종료
+            except:
+                print('100개 미만 수집완료')
+                break
+        
     driver.close()
     return review_code_list, review_date_list, review_list  # 전체 리스트를 리턴
+    
 
 #%%
 
@@ -156,10 +168,10 @@ review_codes = []
 review_dates = []
 reviews = []
 
-# 전체 게시글 개수 : 468개 -> 100개씩 끊어서 돌리기 
+# (중복되지 않은)전체 게시글 개수 : 281개 -> 100개씩 끊어서 돌리기 
 len(post_table)
 
-for i in range(100):
+for i in range(51, 70):
     review_code_list, review_date_list, review_list = review_crawling(post_table['post_url'][i], post_table['post_code'][i])
     review_codes += review_code_list
     review_dates += review_date_list
@@ -174,3 +186,4 @@ for i in range(len(reviews)):
     curs.execute(sql,val)
 
 conn.commit()
+conn.close()
