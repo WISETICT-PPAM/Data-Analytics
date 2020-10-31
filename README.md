@@ -1,4 +1,4 @@
-# 데이터 분석 팀 진행 방향
+# 데이터 수집과 분석 및 DB 구축
 ---
 ## Requirements
 - selenium
