@@ -1,7 +1,7 @@
 # 데이터 수집과 분석 및 DB 구축
 ---
-웹 페이지와의 연동성을 위해 MySQL DB를 구축하여 데이터를 저장하였으며, github에는 일부 데이터를 업로드함  
-
+- 웹 페이지와의 연동성을 위해 MySQL DB를 구축하여 데이터를 저장하였으며, github에는 일부 데이터를 업로드함  
+- 데이터베이스의 자세한 구조는 `database_description.pdf`에서 확인 가능
 ## Requirements
 - selenium
 - PyKoSpacing
