@@ -6,7 +6,6 @@
 - selenium
 - PyKoSpacing
   - https://github.com/haven-jeon/PyKoSpacing
-- konlpy
 - krwordrank
   - https://github.com/lovit/kr-wordrank
     
